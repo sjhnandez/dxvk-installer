@@ -19,7 +19,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Version>0.1.0</Version>
+    <DebugType Condition="'$(Configuration)' == 'Release'">None</DebugType>
+    <Version>0.1.1</Version>
     <AssemblyTitle>DXVK Installer</AssemblyTitle>
     <Product>DXVK Installer</Product>
     <Description>Installs the latest DXVK or DXVK-GPLAsync release next to a game executable.</Description>
@@ -33,5 +34,34 @@
   <ItemGroup>
     <ProjectReference Include="..\DxvkInstaller.Core\DxvkInstaller.Core.csproj" />
   </ItemGroup>
+
+  <!--
+    dotnet publish does not copy the XAML build artifacts (per-file .xbf files and the
+    app's .pri) into the publish folder. Without them the published exe crashes on
+    launch. This target re-adds the artifacts that the XAML phase produced during build.
+  -->
+  <Target Name="AddXamlArtifactsToPublish" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <_DxvkXamlArtifact Include="$(TargetDir)*.xbf" />
+      <_DxvkXamlArtifact Include="$(TargetDir)$(AssemblyName).pri" Condition="Exists('$(TargetDir)$(AssemblyName).pri')" />
+      <ResolvedFileToPublish Include="@(_DxvkXamlArtifact)">
+        <RelativePath>%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Keep the output folder tidy: drop non-English localization folders and the
+    Windows App SDK AI/ML/Widgets components this app never uses.
+  -->
+  <Target Name="PrunePublishOutput" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(RelativePath)', '^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*[\\/]')) And !$([System.Text.RegularExpressions.Regex]::IsMatch('%(RelativePath)', '^en(-[a-zA-Z0-9]{2,8})*[\\/]'))" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(Filename)', '^(Microsoft\.Windows\.AI\..*|Microsoft\.Windows\.Internal\.AI\..*|Microsoft\.Windows\.Widgets.*|Microsoft\.ML\.OnnxRuntime|onnxruntime|DirectML|Microsoft\.Asg\..*)$'))" />
+    </ItemGroup>
+  </Target>
 
 </Project>

@@ -29,6 +29,8 @@ jobs:
           dotnet --list-sdks
           dotnet publish src/DxvkInstaller/DxvkInstaller.csproj -c Release -p:Platform=x64 -o "$env:RUNNER_TEMP\ci-publish"
           if (-not (Test-Path "$env:RUNNER_TEMP\ci-publish\DxvkInstaller.exe")) { throw "publish output missing" }
+          if (-not (Test-Path "$env:RUNNER_TEMP\ci-publish\DxvkInstaller.pri")) { throw "XAML artifacts missing from publish output" }
+          if (Test-Path "$env:RUNNER_TEMP\ci-publish\onnxruntime.dll") { throw "publish output was not pruned" }
 
       # If the XAML compiler ever fails under the dotnet CLI on CI,
       # switch this step to msbuild via microsoft/setup-msbuild.

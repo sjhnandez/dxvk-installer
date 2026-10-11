@@ -32,7 +32,7 @@ The highest detected API wins (a game importing both `d3d9.dll` and `d3d11.dll` 
 
 - Windows 10 version 1809 (build 17763) or newer, x64.
 - Released builds are self-contained: no .NET or Windows App SDK runtime install needed.
-- Building from source: .NET 8 SDK or newer.
+- Building from source: .NET SDK 8.0.302 (pinned via `global.json`).
 
 ## Usage
 

@@ -17,18 +17,23 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '8.0.302'
+
+      # Runs first, from a clean checkout, so it mirrors the release job exactly.
+      # (It previously ran after the build step, whose warm obj/ masked a
+      # cold-restore failure in the release pipeline.)
+      - name: Publish dry run (exact release command, cold)
+        shell: pwsh
+        run: |
+          dotnet --version
+          dotnet --list-sdks
+          dotnet publish src/DxvkInstaller/DxvkInstaller.csproj -c Release -p:Platform=x64 -o "$env:RUNNER_TEMP\ci-publish"
+          if (-not (Test-Path "$env:RUNNER_TEMP\ci-publish\DxvkInstaller.exe")) { throw "publish output missing" }
 
       # If the XAML compiler ever fails under the dotnet CLI on CI,
       # switch this step to msbuild via microsoft/setup-msbuild.
       - name: Build app (WinUI 3, x64)
         run: dotnet build src/DxvkInstaller/DxvkInstaller.csproj -c Release -p:Platform=x64
-
-      - name: Publish dry run (mirrors the release workflow)
-        shell: pwsh
-        run: |
-          dotnet publish src/DxvkInstaller/DxvkInstaller.csproj -c Release -p:Platform=x64 -o "$env:RUNNER_TEMP\ci-publish"
-          if (-not (Test-Path "$env:RUNNER_TEMP\ci-publish\DxvkInstaller.exe")) { throw "publish output missing" }
 
       - name: Run tests
         run: dotnet test tests/DxvkInstaller.Tests/DxvkInstaller.Tests.csproj -c Release --logger "trx;LogFileName=results.trx"

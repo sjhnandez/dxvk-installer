@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to release (e.g. v0.1.0)'
+        required: true
+        type: string
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Resolve version
+        shell: pwsh
+        run: |
+          $version = "${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}"
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Publish (self-contained, win-x64)
+        run: dotnet publish src/DxvkInstaller/DxvkInstaller.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o publish
+
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path publish/* -DestinationPath "dxvk-installer-$env:VERSION-win-x64.zip"
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$env:VERSION" "dxvk-installer-$env:VERSION-win-x64.zip" --title "DXVK Installer $env:VERSION" --generate-notes

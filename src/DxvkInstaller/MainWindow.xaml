@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="DxvkInstaller.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="DXVK Installer">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid x:Name="RootGrid" Padding="24" RowSpacing="16" Loaded="RootGrid_Loaded">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="DXVK Installer" FontSize="28" FontWeight="SemiBold" />
+
+            <TextBlock Grid.Row="1"
+                       Text="Installs the latest DXVK (upstream or GPLAsync) next to a game executable. The rendering API is detected automatically."
+                       TextWrapping="Wrap"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+            <Grid Grid.Row="2" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="ExePathBox" IsReadOnly="True" PlaceholderText="Pick the game's executable (.exe)…" />
+                <Button x:Name="BrowseButton" Grid.Column="1" Content="Browse…" MinWidth="100" Click="BrowseButton_Click" />
+            </Grid>
+
+            <InfoBar Grid.Row="3" x:Name="DetectionBar" IsOpen="False" IsClosable="False" />
+
+            <InfoBar Grid.Row="4" x:Name="AnticheatBar" Severity="Warning" IsOpen="False" IsClosable="True" />
+
+            <ToggleSwitch Grid.Row="5"
+                          x:Name="EditionToggle"
+                          Header="DXVK edition"
+                          OnContent="GPLAsync (async pipelines)"
+                          OffContent="Upstream"
+                          Toggled="EditionToggle_Toggled" />
+
+            <TextBlock Grid.Row="6"
+                       x:Name="VersionText"
+                       Text="Checking latest versions…"
+                       TextWrapping="Wrap"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+            <StackPanel Grid.Row="7" Spacing="6">
+                <TextBlock Text="dxvk.conf profiles" />
+                <ComboBox x:Name="ConfCombo"
+                          MinWidth="360"
+                          PlaceholderText="Choose a profile to edit…"
+                          SelectionChanged="ConfCombo_SelectionChanged">
+                    <ComboBoxItem Content="Edit dxvk.conf: DXVK (upstream)" />
+                    <ComboBoxItem Content="Edit dxvk.conf: DXVK-GPLAsync" />
+                </ComboBox>
+                <TextBlock x:Name="ConfStatusText"
+                           TextWrapping="Wrap"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="8" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <Button x:Name="InstallButton"
+                        Content="Install DXVK"
+                        MinWidth="140"
+                        Style="{StaticResource AccentButtonStyle}"
+                        IsEnabled="False"
+                        Click="InstallButton_Click" />
+                <ProgressBar x:Name="ProgressBar"
+                             Width="240"
+                             Minimum="0"
+                             Maximum="100"
+                             Visibility="Collapsed"
+                             VerticalAlignment="Center" />
+            </StackPanel>
+
+            <TextBlock Grid.Row="9"
+                       x:Name="StatusText"
+                       TextWrapping="Wrap"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+            <InfoBar Grid.Row="10" x:Name="ResultBar" IsOpen="False" IsClosable="True" />
+        </Grid>
+    </ScrollViewer>
+</Window>

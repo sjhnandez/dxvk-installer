@@ -1,0 +1,24 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+artifacts/
+publish/
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+# Misc
+*.binlog
+Thumbs.db
+Desktop.ini
+.DS_Store

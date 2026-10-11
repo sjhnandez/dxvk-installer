@@ -55,8 +55,10 @@ Run the produced `DxvkInstaller.exe` from `src/DxvkInstaller/bin/x64/Release/net
 Self-contained publish:
 
 ```powershell
-dotnet publish src/DxvkInstaller/DxvkInstaller.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o publish
+dotnet publish src/DxvkInstaller/DxvkInstaller.csproj -c Release -p:Platform=x64 -o publish
 ```
+
+(`win-x64` and self-contained settings live in the app's csproj; do not pass `-r`/`--self-contained` on the command line, as those leak into project references during restore.)
 
 Tests:
 

@@ -24,6 +24,12 @@ jobs:
       - name: Build app (WinUI 3, x64)
         run: dotnet build src/DxvkInstaller/DxvkInstaller.csproj -c Release -p:Platform=x64
 
+      - name: Publish dry run (mirrors the release workflow)
+        shell: pwsh
+        run: |
+          dotnet publish src/DxvkInstaller/DxvkInstaller.csproj -c Release -p:Platform=x64 -o "$env:RUNNER_TEMP\ci-publish"
+          if (-not (Test-Path "$env:RUNNER_TEMP\ci-publish\DxvkInstaller.exe")) { throw "publish output missing" }
+
       - name: Run tests
         run: dotnet test tests/DxvkInstaller.Tests/DxvkInstaller.Tests.csproj -c Release --logger "trx;LogFileName=results.trx"
 

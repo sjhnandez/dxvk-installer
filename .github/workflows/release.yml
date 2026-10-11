@@ -30,7 +30,9 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}"
-          echo "VERSION=$version" >> $env:GITHUB_ENV
+          # Do NOT name this variable VERSION: MSBuild imports environment variables as properties,
+          # and a tag like "v0.1.0" then breaks restore ("'v0.1.0' is not a valid version string.").
+          echo "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
 
       # win-x64 and self-contained are defined in DxvkInstaller.csproj on purpose:
       # passing -r/--self-contained here leaks them as global properties into
@@ -40,10 +42,10 @@ jobs:
 
       - name: Package
         shell: pwsh
-        run: Compress-Archive -Path publish/* -DestinationPath "dxvk-installer-$env:VERSION-win-x64.zip"
+        run: Compress-Archive -Path publish/* -DestinationPath "dxvk-installer-$env:RELEASE_VERSION-win-x64.zip"
 
       - name: Create GitHub release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$env:VERSION" "dxvk-installer-$env:VERSION-win-x64.zip" --title "DXVK Installer $env:VERSION" --generate-notes
+        run: gh release create "$env:RELEASE_VERSION" "dxvk-installer-$env:RELEASE_VERSION-win-x64.zip" --title "DXVK Installer $env:RELEASE_VERSION" --generate-notes

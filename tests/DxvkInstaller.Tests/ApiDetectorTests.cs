@@ -112,4 +112,68 @@ public class ApiDetectorTests
         Assert.False(verdict.CanInstall);
         Assert.Contains("ARM64", verdict.Reason);
     }
+
+    [Fact]
+    public void Hard_d3d9_wins_over_delay_d3d10_gow2_shape()
+    {
+        // Gears of War 2 - Hollow (UE3, x86): d3d9 is hard-imported while
+        // d3d10/dxgi are only delay-loaded. Must stay on the Direct3D 9 path.
+        var verdict = ApiDetector.Classify(
+            new[] { "d3d9.dll", "d3dx9_43.dll", "d3dcompiler_43.dll", "kernel32.dll", "steam_api.dll" },
+            new[] { "d3d10.dll", "dxgi.dll", "nvtt.dll", "physxloader.dll" },
+            PeArchitecture.X86);
+
+        Assert.Equal(GameApi.Direct3D9, verdict.Api);
+        Assert.True(verdict.CanInstall);
+        Assert.Equal(new[] { "d3d9.dll" }, verdict.FilesToInstall);
+        Assert.Equal("x32", verdict.ReleaseArchFolder);
+    }
+
+    [Fact]
+    public void Delay_only_d3d11_still_classifies()
+    {
+        var verdict = ApiDetector.Classify(
+            new[] { "kernel32.dll" },
+            new[] { "d3d11.dll", "dxgi.dll" },
+            PeArchitecture.X64);
+
+        Assert.Equal(GameApi.Direct3D11, verdict.Api);
+        Assert.True(verdict.CanInstall);
+        Assert.Equal(new[] { "dxgi.dll", "d3d11.dll" }, verdict.FilesToInstall);
+    }
+
+    [Fact]
+    public void Hard_d3d11_wins_over_delay_d3d9()
+    {
+        var verdict = ApiDetector.Classify(
+            new[] { "d3d11.dll", "dxgi.dll" },
+            new[] { "d3d9.dll" },
+            PeArchitecture.X64);
+
+        Assert.Equal(GameApi.Direct3D11, verdict.Api);
+    }
+
+    [Fact]
+    public void Hard_d3d9_wins_over_delay_d3d11()
+    {
+        var verdict = ApiDetector.Classify(
+            new[] { "d3d9.dll" },
+            new[] { "d3d11.dll", "dxgi.dll" },
+            PeArchitecture.X86);
+
+        Assert.Equal(GameApi.Direct3D9, verdict.Api);
+        Assert.Equal(new[] { "d3d9.dll" }, verdict.FilesToInstall);
+    }
+
+    [Fact]
+    public void Hard_table_precedence_is_unchanged_d3d10_over_d3d9()
+    {
+        // Documents that priority within a single table is untouched.
+        var verdict = ApiDetector.Classify(
+            new[] { "d3d9.dll", "d3d10.dll" },
+            Array.Empty<string>(),
+            PeArchitecture.X64);
+
+        Assert.Equal(GameApi.Direct3D10, verdict.Api);
+    }
 }

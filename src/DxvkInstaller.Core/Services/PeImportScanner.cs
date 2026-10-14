@@ -5,12 +5,13 @@ using DxvkInstaller.Models;
 namespace DxvkInstaller.Services;
 
 /// <summary>
-/// Reads the PE import and delay-load import tables of an executable or DLL
-/// and returns the machine architecture plus the imported module names.
+/// Reads the PE import and delay-load import tables of an executable or DLL and
+/// returns the machine architecture, the union of both tables and each table
+/// separately (hard/startup imports vs. delay-load imports).
 /// </summary>
 public static class PeImportScanner
 {
-    public static (PeArchitecture Architecture, IReadOnlyList<string> Modules) Scan(string filePath)
+    public static (PeArchitecture Architecture, IReadOnlyList<string> Modules, IReadOnlyList<string> HardImports, IReadOnlyList<string> DelayImports) Scan(string filePath)
     {
         using var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         using var pe = new PEReader(stream);
@@ -18,7 +19,7 @@ public static class PeImportScanner
         var header = pe.PEHeaders.PEHeader;
         if (header is null)
         {
-            return (PeArchitecture.Unknown, Array.Empty<string>());
+            return (PeArchitecture.Unknown, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>());
         }
 
         var architecture = pe.PEHeaders.CoffHeader.Machine switch
@@ -29,14 +30,18 @@ public static class PeImportScanner
             _ => PeArchitecture.Unknown
         };
 
-        var modules = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        try { ReadImportTable(pe, modules); } catch { /* malformed table: keep what we have */ }
-        try { ReadDelayImportTable(pe, modules); } catch { }
+        var hardImports = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var delayImports = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try { ReadImportTable(pe, hardImports); } catch { /* malformed table: keep what we have */ }
+        try { ReadDelayImportTable(pe, delayImports); } catch { }
 
-        return (architecture, modules.ToArray());
+        var modules = new HashSet<string>(hardImports, StringComparer.OrdinalIgnoreCase);
+        modules.UnionWith(delayImports);
+
+        return (architecture, modules.ToArray(), hardImports.ToArray(), delayImports.ToArray());
     }
 
-    private static void ReadImportTable(PEReader pe, HashSet<string> modules)
+    private static void ReadImportTable(PEReader pe, HashSet<string> hardImports)
     {
         var directory = pe.PEHeaders.PEHeader!.ImportTableDirectory;
         if (directory.RelativeVirtualAddress <= 0 || directory.Size <= 0)
@@ -58,11 +63,11 @@ public static class PeImportScanner
                 break; // end of the descriptor array
             }
 
-            AddModule(pe, modules, nameRva);
+            AddModule(pe, hardImports, nameRva);
         }
     }
 
-    private static void ReadDelayImportTable(PEReader pe, HashSet<string> modules)
+    private static void ReadDelayImportTable(PEReader pe, HashSet<string> delayImports)
     {
         var directory = pe.PEHeaders.PEHeader!.DelayImportTableDirectory;
         if (directory.RelativeVirtualAddress <= 0 || directory.Size <= 0)
@@ -82,7 +87,7 @@ public static class PeImportScanner
                 break;
             }
 
-            AddModule(pe, modules, dllNameRva);
+            AddModule(pe, delayImports, dllNameRva);
         }
     }
 

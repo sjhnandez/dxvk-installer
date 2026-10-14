@@ -11,9 +11,27 @@ public static class ApiDetector
     private static readonly string[] D3D10Markers = { "d3d10.dll", "d3d10_1.dll", "d3d10core.dll" };
 
     public static ApiVerdict Classify(IReadOnlyCollection<string> importedModules, PeArchitecture architecture)
-    {
-        var api = Match(importedModules);
+        => BuildVerdict(Match(importedModules), architecture);
 
+    /// <summary>
+    /// Classifies from the two import tables separately: a hard (startup) import is stronger
+    /// evidence than a delay-load import, so the delay-load table is only consulted when the
+    /// hard table yields no match. UE3 titles such as Gears of War 2 "Hollow" hard-import
+    /// d3d9.dll but only delay-load d3d10.dll/dxgi.dll; they must classify as Direct3D 9.
+    /// </summary>
+    public static ApiVerdict Classify(IReadOnlyCollection<string> hardImports, IReadOnlyCollection<string> delayImports, PeArchitecture architecture)
+    {
+        var api = Match(hardImports);
+        if (api == GameApi.None)
+        {
+            api = Match(delayImports);
+        }
+
+        return BuildVerdict(api, architecture);
+    }
+
+    private static ApiVerdict BuildVerdict(GameApi api, PeArchitecture architecture)
+    {
         var files = api switch
         {
             GameApi.Direct3D11 => D3D11Files,
@@ -47,14 +65,14 @@ public static class ApiDetector
 
     public static async Task<ApiVerdict> AnalyzeAsync(string exePath, CancellationToken cancellationToken = default)
     {
-        var (architecture, modules) = await Task.Run(() => PeImportScanner.Scan(exePath), cancellationToken).ConfigureAwait(false);
-        var verdict = Classify(modules, architecture);
+        var scan = await Task.Run(() => PeImportScanner.Scan(exePath), cancellationToken).ConfigureAwait(false);
+        var verdict = Classify(scan.HardImports, scan.DelayImports, scan.Architecture);
 
         if (verdict.Api == GameApi.None)
         {
             // Engines such as Unity import Direct3D through a companion DLL,
             // so scan the sibling DLLs before declaring the game unsupported.
-            var siblingVerdict = await Task.Run(() => ScanSiblingDlls(exePath, architecture, cancellationToken), cancellationToken).ConfigureAwait(false);
+            var siblingVerdict = await Task.Run(() => ScanSiblingDlls(exePath, scan.Architecture, cancellationToken), cancellationToken).ConfigureAwait(false);
             verdict = siblingVerdict ?? verdict;
         }
 
@@ -79,7 +97,7 @@ public static class ApiDetector
                 cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
-                    var (_, modules) = PeImportScanner.Scan(dll);
+                    var (_, modules, _, _) = PeImportScanner.Scan(dll);
                     if (modules.Count == 0)
                     {
                         continue;

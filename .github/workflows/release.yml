@@ -4,12 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag to release (e.g. v0.1.0)'
+        description: "Version tag to release (e.g. v0.1.0)"
         required: true
         type: string
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -24,12 +29,12 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.302'
+          dotnet-version: "8.0.302"
 
       - name: Resolve version
         shell: pwsh
         run: |
-          $version = "${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}"
+          $version = "${{ inputs.version || github.ref_name }}"
           # Do NOT name this variable VERSION: MSBuild imports environment variables as properties,
           # and a tag like "v0.1.0" then breaks restore ("'v0.1.0' is not a valid version string.").
           echo "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
@@ -48,4 +53,4 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$env:RELEASE_VERSION" "dxvk-installer-$env:RELEASE_VERSION-win-x64.zip" --title "DXVK Installer $env:RELEASE_VERSION" --generate-notes
+        run: gh release create "$env:RELEASE_VERSION" "dxvk-installer-$env:RELEASE_VERSION-win-x64.zip" --title "DXVK Installer $env:RELEASE_VERSION" --generate-notes --target "${{ github.sha }}"
